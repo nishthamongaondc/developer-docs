@@ -19,7 +19,7 @@ Protocol Draft
 March 13, 2022
 
 ## Expires on:
-March 12, 2026 or Date of publication of next draft which ever is earlier
+March 12, 2027 or Date of publication of next draft which ever is earlier
 
 ## License:
 CC-BY-ND
@@ -129,7 +129,13 @@ CC-BY-ND
   |61001|LSP|Feature not supported|Feature not supported|
   |61002|LSP|PCC OTP Retrigger Request|Logistics Provider requests Logistics Buyer to retrigger Pickup (PCC) OTP|
   |61003|LSP|DCC OTP Retrigger Request|Logistics Provider requests Logistics Buyer to retrigger Delivery (DCC) OTP|
-  |61004|LSP|LSP Requests LBNP for Support Callback|When Rider (or LSP) wants customer support callback from Logistics Buyer|
+  |61004|LSP|LSP Requests LBNP for Support Callback|Customer not reachable|
+  |61005|LSP|LSP Requests LBNP for Support Callback|Unable to update status (Order-picked,Order-delivered)|
+  |61006|LSP|LSP Requests LBNP for Support Callback|Item OOS / system issue|
+  |61007|LSP|LSP Requests LBNP for Support Callback|Restaurant is closed|
+  |61008|LSP|LSP Requests LBNP for Support Callback|Problem finding or accessing restaurant|
+  |61009|LSP|LSP Requests LBNP for Support Callback|Others|
+  |61010|LSP|LSP Requests LBNP for Customer Contact|Deferred Request for Customer Contact from Logistics Provider to Logistics Buyer|
   |62501|LBNP|Terms and Conditions unacceptable|Logistics Provider terms & conditions not acceptable to Logistics Buyer|
   |62502|LBNP|Order terminated|Order terminated as Logistics Provider did not accept terms proposed by Logistics Buyer|
   |62503|LBNP|RTO rejected|RTO request rejected as quote does not match the quote provided in catalog|
