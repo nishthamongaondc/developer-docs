@@ -1,4 +1,4 @@
-# Beckn API — Payload Encryption & Decryption
+# API Payload Encryption & Decryption
 
 ## Overview
 
