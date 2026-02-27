@@ -144,3 +144,8 @@ NP2 decrypts the `encrypted_data` field using the derived shared key to obtain t
 * **Blob encryption** secures opaque or binary data objects.
 
 All three approaches reuse the same registry-based key exchange, shared secret derivation, and AES-GCM encryption primitives, differing only in the scope of data encrypted.
+
+#### Related Documents
+
+* [API Payload Encryption & Decryption](https://github.com/ONDC-Official/developer-docs/blob/main/registry/api_payload_encryption.md)
+* [Form Submission — Encryption, Decryption & Signing](https://github.com/ONDC-Official/developer-docs/blob/main/registry/form_encryption_and_signing.md)
