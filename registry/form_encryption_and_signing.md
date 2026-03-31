@@ -6,7 +6,6 @@ All form payloads submitted between Network Participants (NPs) are **fully encry
 
 - The entire form body is encrypted — no individual field is readable in transit.
 - A signature over the encrypted payload ensures authenticity and tamper detection.
-- The signature hash can also be computed from `formData` text (for example, the output of `JSON.stringify(formData)`) if both NPs use the exact same format.
 - The receiver can decrypt and validate the form independently.
 
 ---
@@ -18,7 +17,7 @@ All form payloads submitted between Network Participants (NPs) are **fully encry
 | X25519 / Diffie-Hellman | Shared secret derivation |
 | AES-256-GCM | Symmetric payload encryption |
 | Ed25519 | Payload signing & verification |
-| SHA-256 | Hashing before signing |
+| BLAKE-512 | Digest generation before signing |
 | Base64 | Binary-to-string encoding for transport |
 
 ---
@@ -65,35 +64,78 @@ encrypted_payload = Base64.encode(iv + ciphertext + authTag)
 
 ### Step 3 · Sign Encrypted Payload
 
-```
-hash = SHA256(encrypted_payload)
+Signing follows the same method used for Beckn API request signing (see [ONDC Network Signing & Verifying](./signing-verification.md)).
 
+**3a. Generate the digest** of the `encrypted_payload` using BLAKE-512:
+
+```
+digest = Base64.encode( BLAKE512( encrypted_payload ) )
+```
+
+**3b. Construct the signing string** using `created`, `expires`, and the digest:
+
+```
+signing_string = "(created): {created_unix_ts}\n(expires): {expires_unix_ts}\ndigest:BLAKE-512={digest}"
+```
+
+**3c. Sign the signing string** using the NP's Ed25519 signing private key:
+
+```
 signature = Ed25519.sign(
-    data       = hash,
+    data       = signing_string,
     privateKey = NP1_sign_private_key
 )
 
 encoded_signature = Base64.encode(signature)
 ```
 
-> Alternate hashing input (if agreed): `hash = SHA256(JSON.stringify(formData))`.  
-> In this mode, both sender and receiver must hash the exact same form-data text format.
+**3d. Set the Authorization header:**
+
+```
+Authorization: Signature
+  keyId="{subscriber_id}|{unique_key_id}|ed25519",
+  algorithm="ed25519",
+  created="{created_unix_ts}",
+  expires="{expires_unix_ts}",
+  headers="(created) (expires) digest",
+  signature="{encoded_signature}"
+```
+
+> For a worked example of key generation, digest computation, and Authorization header construction, refer to [ONDC Network Signing & Verifying](./signing-verification.md#authorization-header).
 
 ### Step 4 · Submit Form
+
+Include the full `context` as plaintext, the `encrypted_payload`, and the `Authorization` header carrying the signature:
+
+**Request Body:**
 
 ```json
 {
   "context": {
-    "np_id": "buyer-app.ondc.org",
+    "domain": "ONDC:FIS13",
+    "country": "IND",
+    "city": "std:080",
+    "action": "confirm",
+    "core_version": "2.1.0",
+    "bap_id": "buyer-app.ondc.org",
+    "bap_uri": "https://buyer-app.ondc.org/protocol/v1",
+    "bpp_id": "seller-app.ondc.org",
+    "bpp_uri": "https://seller-app.ondc.org/protocol/v1",
     "transaction_id": "123e4567-e89b-12d3-a456-426614174000",
+    "message_id": "123e4567-e89b-12d3-a456-426614174001",
     "timestamp": "2024-03-23T18:25:43.511Z"
   },
-  "encrypted_payload": "<Base64( iv + ciphertext + authTag )>",
-  "signature": "<Base64( Ed25519 signature )>"
+  "encrypted_payload": "<Base64( iv + ciphertext + authTag )>"
 }
 ```
 
-> `context` is always plaintext. `encrypted_payload` and `signature` carry the secured form data.
+**Authorization Header:**
+
+```
+Signature keyId="buyer-app.ondc.org|207|ed25519",algorithm="ed25519",created="1641287875",expires="1641291475",headers="(created) (expires) digest",signature="fKQWvXhln4UdyZdL87ViXQObdBme0dHnsclD2LvvnHoNxIgcvAwUZOmwAnH5QKi9Upg5tRaxpoGhCFGHD+d+Bw=="
+```
+
+> `context` is always plaintext. `encrypted_payload` carries the secured form data. The signature travels in the `Authorization` header, not in the request body.
 
 ---
 
@@ -104,10 +146,18 @@ encoded_signature = Base64.encode(signature)
 ```
 np1_sign_public_key = registry.fetchSigningPublicKey(np1_id)
 
-hash = SHA256(encrypted_payload)
+// Extract fields from the Authorization header
+auth        = parseAuthorizationHeader(request.headers["Authorization"])
+created     = auth.created
+expires     = auth.expires
+signature   = auth.signature
+
+digest = Base64.encode( BLAKE512( encrypted_payload ) )
+
+signing_string = "(created): {created}\n(expires): {expires}\ndigest:BLAKE-512={digest}"
 
 isValid = Ed25519.verify(
-    data      = hash,
+    data      = signing_string,
     signature = Base64.decode(signature),
     publicKey = np1_sign_public_key
 )
@@ -116,7 +166,6 @@ if NOT isValid → REJECT("Signature verification failed")
 ```
 
 > Always verify signature **before** decrypting.
-> If payload-hash signing is used, compute the hash from the same `JSON.stringify(formData)` output as the sender.
 
 ### Step 6 · Derive Shared Key
 
@@ -167,8 +216,8 @@ NP1 (Sender)                                    NP2 (Receiver)
 3. JSON.stringify(formData)
 4. Generate random IV (12 bytes)
 5. AES_GCM.encrypt → Base64 encode
-6. SHA256(encrypted_payload)
-7. Ed25519.sign → Base64 encode
+6. BLAKE512(encrypted_payload) → construct signing string
+7. Ed25519.sign → Base64 encode → Authorization header
 8. POST { context, encrypted_payload, signature }
                                                 9.  Fetch NP1 sign public key (registry)
                                                 10. Ed25519.verify → REJECT if invalid
