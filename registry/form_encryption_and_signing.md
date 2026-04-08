@@ -112,18 +112,23 @@ Include the full `context` as plaintext, the `encrypted_payload`, and the `Autho
 ```json
 {
   "context": {
+    "action": "search",
+    "bap_id": "fis.test.bap.io",
+    "bap_uri": "https://fis.test.bap.io/",
     "domain": "ONDC:FIS13",
-    "country": "IND",
-    "city": "std:080",
-    "action": "confirm",
-    "core_version": "2.1.0",
-    "bap_id": "buyer-app.ondc.org",
-    "bap_uri": "https://buyer-app.ondc.org/protocol/v1",
-    "bpp_id": "seller-app.ondc.org",
-    "bpp_uri": "https://seller-app.ondc.org/protocol/v1",
-    "transaction_id": "123e4567-e89b-12d3-a456-426614174000",
-    "message_id": "123e4567-e89b-12d3-a456-426614174001",
-    "timestamp": "2024-03-23T18:25:43.511Z"
+    "location": {
+      "country": {
+        "code": "IND"
+      },
+      "city": {
+        "code": "*"
+      }
+    },
+    "message_id": "385e3fb7-61e6-49a7-acbc-8ac05f934d4d",
+    "timestamp": "2023-07-24T05:39:31.700Z",
+    "transaction_id": "c04a04ee-d892-400f-bbe6-479a43b4448a",
+    "ttl": "PT24H",
+    "version": "2.0.1"
   },
   "encrypted_payload": "<Base64( iv + ciphertext + authTag )>"
 }
