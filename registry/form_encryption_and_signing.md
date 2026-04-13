@@ -46,20 +46,26 @@ sharedKey = DiffieHellman(
 )
 ```
 
-### Step 2 · Encrypt Form Payload
+## Step 2 · Encrypt Form Payload
 
 ```
 serialized = JSON.stringify(formData)
 
-iv = randomBytes(12)                          // fresh IV per submission
+nonce = randomBytes(12)                        // fresh IV per submission
 
 { ciphertext, authTag } = AES_GCM.encrypt(
     plaintext = serialized,
-    key       = sharedKey,
-    iv        = iv
+    key       = sharedKey,                     // decoded from base64
+    iv        = nonce
 )
 
-encrypted_payload = Base64.encode(iv + ciphertext + authTag)
+payload = {
+    encrypted_data : Base64.encode(ciphertext),
+    hmac           : Base64.encode(authTag),
+    nonce          : Base64.encode(nonce)
+}
+
+encrypted_payload = Base64.encode(JSON.stringify(payload))
 ```
 
 ### Step 3 · Sign Encrypted Payload
@@ -183,20 +189,20 @@ sharedKey = DiffieHellman(
 )
 ```
 
-### Step 7 · Decrypt Form Payload
+## Step 7 · Decrypt Form Payload
 
 ```
-rawBytes = Base64.decode(encrypted_payload)
+payloadJSON = JSON.parse(Base64.decode(encrypted_payload))
 
-iv         = rawBytes[0:12]
-authTag    = rawBytes[-16:]
-ciphertext = rawBytes[12:-16]
+ciphertext = Base64.decode(payloadJSON.encrypted_data)
+authTag    = Base64.decode(payloadJSON.hmac)
+nonce      = Base64.decode(payloadJSON.nonce)
 
 decrypted = AES_GCM.decrypt(
     ciphertext = ciphertext,
     key        = sharedKey,
-    iv         = iv,
-    authTag    = authTag       // integrity verified automatically
+    iv         = nonce,
+    authTag    = authTag       
 )
 
 formData = JSON.parse(decrypted)
